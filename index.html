@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Builder — Chiến lược viết bài báo khoa học</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#101c34;
+    --panel:#182a4d;
+    --panel-2:#1f3560;
+    --paper:#f1ecdd;
+    --gold:#c9a04a;
+    --gold-soft:#e4c877;
+    --teal:#5c9a90;
+    --text-dim:#a9b6d1;
+    --border:#324b7d;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse at top left, #1a2c52 0%, var(--ink) 55%);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:40px 20px 80px;
+    line-height:1.55;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:24px;
+    margin-bottom:36px;
+  }
+  .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(26px,4vw,36px);
+    margin:0;
+    color:var(--paper);
+    letter-spacing:-.01em;
+  }
+  .seal{
+    flex-shrink:0;
+    width:64px;height:64px;
+    border:1.5px solid var(--gold);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px;
+    letter-spacing:.08em;
+    text-align:center;
+    color:var(--gold-soft);
+    line-height:1.3;
+    position:relative;
+  }
+  .seal::before{
+    content:"";
+    position:absolute;inset:6px;
+    border:1px solid var(--gold);
+    border-radius:50%;
+    opacity:.5;
+  }
+
+  .section{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:24px 26px;
+    margin-bottom:18px;
+  }
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--gold);
+    border:1px solid var(--gold);
+    border-radius:50%;
+    width:24px;height:24px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .section-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:18px;
+    color:var(--paper);
+  }
+  .section-sub{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin:-8px 0 16px 36px;
+  }
+
+  label{
+    display:block;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--gold-soft);
+    margin-bottom:6px;
+    margin-top:16px;
+  }
+  label:first-of-type{margin-top:0;}
+  label .opt{
+    color:var(--text-dim);
+    font-weight:400;
+    font-style:italic;
+  }
+  textarea, input[type=text], select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    resize:vertical;
+    transition:border-color .15s ease;
+  }
+  textarea:focus, input:focus, select:focus{
+    outline:none;
+    border-color:var(--teal);
+  }
+  textarea{min-height:64px;}
+  select{
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a04a'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    cursor:pointer;
+  }
+
+  .actions{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin:30px 0 10px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border-radius:var(--radius);
+    padding:12px 22px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(.98);}
+  .btn-primary{
+    background:var(--gold);
+    color:var(--ink);
+    font-weight:600;
+    border:1px solid var(--gold);
+  }
+  .btn-primary:hover{background:var(--gold-soft);}
+  .btn-secondary{
+    background:transparent;
+    color:var(--teal);
+    border:1px solid var(--teal);
+  }
+  .btn-secondary:hover{background:rgba(92,154,144,.12);}
+  .btn-secondary:disabled{
+    opacity:.35;
+    cursor:not-allowed;
+  }
+
+  .required-note{
+    font-size:11.5px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  #output-wrap{display:none;margin-top:8px;}
+  #output-wrap.show{display:block;}
+  .output-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--teal);
+    margin-bottom:8px;
+  }
+  #preview{
+    width:100%;
+    min-height:280px;
+    background:var(--panel-2);
+    border:1px solid var(--teal);
+    border-radius:var(--radius);
+    color:var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    line-height:1.6;
+    padding:16px;
+    white-space:pre-wrap;
+  }
+  .copied-flash{
+    color:var(--gold-soft);
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    margin-left:8px;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .copied-flash.show{opacity:1;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="kicker">Công cụ nội bộ · Chiến lược bài báo khoa học</div>
+      <h1>Prompt Builder</h1>
+    </div>
+    <div class="seal">BẢN<br>THẢO<br>v2</div>
+  </header>
+
+  <form id="builderForm">
+
+    <div class="section">
+      <div class="section-head"><span class="num">1</span><span class="section-title">Chủ đề & giai đoạn</span></div>
+      <label for="chude">Chủ đề / lĩnh vực nghiên cứu</label>
+      <textarea id="chude" placeholder="Ví dụ: Ứng dụng mô hình hóa/hóa trắc học để phân tích hệ vật liệu..." required></textarea>
+
+      <label for="giaidoan">Giai đoạn hiện tại</label>
+      <select id="giaidoan">
+        <option value="Mới có ý tưởng, chưa có dữ liệu">Mới có ý tưởng, chưa có dữ liệu</option>
+        <option value="Đã có dữ liệu/kết quả sơ bộ, chưa hoàn chỉnh">Đã có dữ liệu/kết quả sơ bộ, chưa hoàn chỉnh</option>
+        <option value="Đã có kết quả tương đối đầy đủ, chuẩn bị viết bài">Đã có kết quả tương đối đầy đủ, chuẩn bị viết bài</option>
+        <option value="Đã có bản thảo, cần chiến lược trình bày lại">Đã có bản thảo, cần chiến lược trình bày lại</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="num">2</span><span class="section-title">Nguồn lực hiện có</span></div>
+      <div class="section-sub">Giúp AI đánh giá gap dựa trên năng lực thật, không phải chung chung</div>
+
+      <label for="dulieu">Dữ liệu / kết quả sơ bộ đã có <span class="opt">(để trống nếu chưa có)</span></label>
+      <textarea id="dulieu" placeholder="Ví dụ: đã chạy mô phỏng DFT cho 5 hệ vật liệu, kết quả sơ bộ cho thấy..."></textarea>
+
+      <label for="congcu">Công cụ, phương pháp, thiết bị hiện có</label>
+      <textarea id="congcu" placeholder="Ví dụ: phần mềm VASP, cụm HPC 200 core, kính hiển vi SEM..."></textarea>
+
+      <label for="trinhdo">Trình độ / kinh nghiệm của nhóm nghiên cứu</label>
+      <textarea id="trinhdo" placeholder="Ví dụ: nghiên cứu sinh năm 2, đã có 1 bài Q2, nhóm mạnh về thực nghiệm nhưng yếu mô phỏng..."></textarea>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="num">3</span><span class="section-title">Định hướng phương pháp & tạp chí</span></div>
+
+      <label for="phuongphap">Phương pháp / công cụ dự định sử dụng <span class="opt">(nếu đã hình dung)</span></label>
+      <textarea id="phuongphap" placeholder="Ví dụ: kết hợp DFT với machine learning để dự đoán..."></textarea>
+
+      <label for="tapchi">Định hướng tạp chí mong muốn</label>
+      <select id="tapchi">
+        <option value="chưa rõ, cần AI tư vấn">Chưa rõ, cần AI tư vấn</option>
+        <option value="thiên về ứng dụng thực tiễn">Thiên về ứng dụng thực tiễn</option>
+        <option value="phát triển phương pháp mới">Phát triển phương pháp mới</option>
+        <option value="chiều sâu lý thuyết/cơ chế">Chiều sâu lý thuyết / cơ chế</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="num">4</span><span class="section-title">Phản biện đối kháng</span></div>
+      <div class="section-sub">Không bắt buộc — nhưng giúp AI đóng vai Reviewer 2 sát hơn</div>
+
+      <label for="giathuyet">Giả thuyết cạnh tranh / cách giải thích khác mà bạn biết <span class="opt">(không bắt buộc)</span></label>
+      <textarea id="giathuyet" placeholder="Ví dụ: có nhóm khác cho rằng cơ chế X quan trọng hơn Y..."></textarea>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><span class="num">5</span><span class="section-title">Phạm vi & những gì bạn đã biết</span></div>
+      <div class="section-sub">Giúp AI không lặp lại thứ bạn đã biết, và không bịa tài liệu tham khảo</div>
+
+      <label for="daboiet">Tài liệu / nghiên cứu bạn đã đọc qua <span class="opt">(không bắt buộc)</span></label>
+      <textarea id="daboiet" placeholder="Ví dụ: đã đọc vài bài về Fe-CHA cho SCR, chưa đọc gì về B-CHA..."></textarea>
+
+      <label for="deadline">Mốc thời gian / deadline mong muốn <span class="opt">(không bắt buộc)</span></label>
+      <input type="text" id="deadline" placeholder="Ví dụ: cần có kết quả sơ bộ trong 6 tháng, hoặc chưa có deadline cụ thể">
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn-primary">Hoàn thành</button>
+      <span class="required-note">* Chỉ mục "Chủ đề" là bắt buộc</span>
+    </div>
+  </form>
+
+  <div id="output-wrap">
+    <div class="output-label">Prompt hoàn chỉnh — sao chép hoặc tải về</div>
+    <textarea id="preview" readonly></textarea>
+    <div class="actions">
+      <button type="button" class="btn-secondary" id="copyBtn">Sao chép</button>
+      <button type="button" class="btn-secondary" id="downloadBtn">Tải file .txt</button>
+      <span class="copied-flash" id="flash">Đã sao chép ✓</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function val(id){
+  const v = document.getElementById(id).value.trim();
+  return v.length ? v : "(chưa cung cấp)";
+}
+
+document.getElementById('builderForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const chude = document.getElementById('chude').value.trim();
+  if(!chude){
+    document.getElementById('chude').focus();
+    return;
+  }
+
+  const prompt = `Role: Bạn là một nhà khoa học đầu ngành, đồng thời là biên tập viên tạp chí quốc tế SCI/SCIE uy tín, có tư duy phản biện sắc sảo, logic, khách quan và không xu nịnh.
+
+Nhiệm vụ: Cùng tôi mổ xẻ, xây dựng chiến lược và cấu trúc cho một bài báo khoa học sắp tới, dựa trên bối cảnh thực tế của tôi bên dưới — không phải bối cảnh chung chung.
+
+BỐI CẢNH THỰC TẾ
+- Chủ đề / lĩnh vực nghiên cứu: ${chude}
+- Giai đoạn hiện tại: ${val('giaidoan')}
+- Dữ liệu / kết quả sơ bộ đã có: ${val('dulieu')}
+- Công cụ, phương pháp, thiết bị hiện có: ${val('congcu')}
+- Trình độ / kinh nghiệm của nhóm nghiên cứu: ${val('trinhdo')}
+- Phương pháp / công cụ dự định sử dụng: ${val('phuongphap')}
+- Định hướng tạp chí mong muốn: ${val('tapchi')}
+- Giả thuyết cạnh tranh / hướng tiếp cận khác mà tôi biết: ${val('giathuyet')}
+- Tài liệu / nghiên cứu tôi đã đọc qua: ${val('daboiet')}
+- Mốc thời gian / deadline mong muốn: ${val('deadline')}
+
+NGUYÊN TẮC TRẢ LỜI
+- Phản biện cao, không xu nịnh, chỉ rõ điểm yếu tiềm ẩn — kể cả trong chính giả định của tôi.
+- Nếu không chắc chắn về tình trạng nghiên cứu hiện tại (ai đã làm gì, gap còn hay đã đóng), hãy nói rõ mức độ tin cậy thay vì suy đoán chắc nịch; phân biệt rõ giữa "tôi biết chắc" và "tôi suy luận".
+- Đóng vai một "Reviewer 2" khó tính nhất có thể: chủ động tìm ít nhất một giả thuyết cạnh tranh hoặc lời giải thích thay thế mà nghiên cứu của tôi cần bác bỏ được, và chỉ ra điểm yếu lớn nhất trong logic đề xuất hiện tại.
+- QUAN TRỌNG — về tài liệu tham khảo: nếu bạn có khả năng tìm kiếm web, hãy thực sự tìm kiếm trước khi liệt kê bất kỳ tài liệu nào, và chỉ trích dẫn nguồn bạn tìm thấy thật (kèm tên nguồn/link). Nếu bạn không có khả năng search hoặc không tìm thấy đủ căn cứ, hãy nói rõ ràng là không thể xác nhận tài liệu cụ thể — tuyệt đối không bịa ra tên bài báo, tác giả, hay DOI.
+
+Hãy phân tích và trả lời lần lượt theo các nhóm câu hỏi sau, dựa trên bối cảnh thực tế ở trên (không phải chung chung):
+
+1. ĐÁNH GIÁ ĐỘ TRƯỞNG THÀNH & KHOẢNG TRỐNG
+- Lĩnh vực này hiện bão hòa hay đang là xu hướng? Giới hạn của các nghiên cứu trước là gì?
+- Với nguồn lực, dữ liệu và trình độ tôi đang có, đâu là khoảng trống nghiên cứu tôi thực sự khai thác được mà không trùng lặp?
+
+2. ĐÓNG GÓP CỐT LÕI & CÂU HỎI NGHIÊN CỨU
+- Đóng góp cốt lõi (novelty) khả thi nhất với nguồn lực hiện có là gì (phương pháp, cơ chế, vật liệu, hay mô hình)?
+- Hệ thống câu hỏi nghiên cứu cụ thể cần được trả lời trong bài báo là gì?
+- Mức độ tổng quát hóa (generalizability) của kết quả đến đâu, và giới hạn ở đâu?
+
+3. PHƯƠNG PHÁP, CƠ CHẾ & TÍNH KHẢ THI
+- Phương pháp, công cụ chuẩn mực nào phù hợp nhất với những gì tôi đã có? Cần benchmark/mô hình đối chứng nào?
+- Nghiên cứu này sẽ trả lời câu hỏi "Tại sao" (cơ chế vi mô/bản chất) thay vì chỉ dừng ở "Như thế nào"?
+- Với năng lực hiện tại của tôi, rủi ro lớn nhất về phương pháp hoặc dữ liệu là gì? Phương án phòng ngừa ra sao?
+
+4. ĐIỂM NHẤN & CHIẾN LƯỢC KỂ CHUYỆN
+- Đâu là các điểm nhấn (Highlights) đắt giá nhất cho mục "Highlights" của tạp chí?
+- Narrative của bài báo nên được dẫn dắt theo trình tự logic nào từ Introduction đến Conclusion?
+- Bài báo này phù hợp nhất với phân khúc tạp chí nào, đối chiếu với định hướng tôi đã nêu ở trên?
+
+5. PHẢN BIỆN ĐỐI KHÁNG (REVIEWER 2)
+- Giả thuyết hoặc cách giải thích cạnh tranh nào mạnh nhất mà tôi cần bác bỏ được?
+- Nếu bạn là reviewer khó tính nhất, bạn sẽ từ chối bài báo này vì (những) lý do gì?
+
+ĐẦU RA MONG MUỐN
+- Trình bày có hệ thống, mạch lạc, dùng đề mục rõ ràng, thẳng thắn chỉ ra những điểm tôi cần lưu ý trước khi triển khai chi tiết.
+- Kết thúc bằng: (a) một outline sơ bộ cho bài báo (Introduction → ... → Conclusion), (b) danh sách các quyết định (decision points) cụ thể tôi cần chốt trước khi bắt đầu viết chi tiết, và (c) nếu thấy phù hợp — 2-3 gợi ý working title, ghi rõ đây chỉ là gợi ý tạm thời, chưa chốt và có thể đổi sau khi có kết quả thật.`;
+
+  document.getElementById('preview').value = prompt;
+  document.getElementById('output-wrap').classList.add('show');
+  document.getElementById('output-wrap').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+document.getElementById('copyBtn').addEventListener('click', async function(){
+  const text = document.getElementById('preview').value;
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(err){
+    const ta = document.getElementById('preview');
+    ta.select();
+    document.execCommand('copy');
+  }
+  const flash = document.getElementById('flash');
+  flash.classList.add('show');
+  setTimeout(()=>flash.classList.remove('show'), 1600);
+});
+
+document.getElementById('downloadBtn').addEventListener('click', function(){
+  const text = document.getElementById('preview').value;
+  const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'prompt_bai_bao_khoa_hoc.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
