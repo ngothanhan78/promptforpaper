@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bộ công cụ Prompt — Vòng đời bài báo khoa học</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#101c34;
+    --panel:#182a4d;
+    --panel-2:#1f3560;
+    --paper:#f1ecdd;
+    --gold:#c9a04a;
+    --gold-soft:#e4c877;
+    --teal:#5c9a90;
+    --text-dim:#a9b6d1;
+    --border:#324b7d;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(ellipse at top left, #1a2c52 0%, var(--ink) 55%);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:40px 20px 80px;
+    line-height:1.55;
+  }
+  .wrap{max-width:800px;margin:0 auto;}
+
+  header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:20px;
+    border-bottom:1px solid var(--border);
+    padding-bottom:24px;
+    margin-bottom:28px;
+  }
+  .kicker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gold-soft);
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(24px,4vw,34px);
+    margin:0;
+    color:var(--paper);
+    letter-spacing:-.01em;
+  }
+  .subhead{
+    font-size:13px;
+    color:var(--text-dim);
+    margin-top:8px;
+    max-width:52ch;
+  }
+  .seal{
+    flex-shrink:0;
+    width:64px;height:64px;
+    border:1.5px solid var(--gold);
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px;
+    letter-spacing:.08em;
+    text-align:center;
+    color:var(--gold-soft);
+    line-height:1.3;
+    position:relative;
+  }
+  .seal::before{
+    content:"";
+    position:absolute;inset:6px;
+    border:1px solid var(--gold);
+    border-radius:50%;
+    opacity:.5;
+  }
+
+  /* Tab bar — numbered because these tools are a real sequence in a paper's lifecycle */
+  .tabbar{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:10px;
+    margin-bottom:28px;
+    border-bottom:1px solid var(--border);
+    scrollbar-width:thin;
+  }
+  .tabbtn{
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:transparent;
+    border:1px solid var(--border);
+    border-radius:999px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    padding:8px 14px 8px 8px;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .tabbtn:hover{border-color:var(--teal); color:var(--paper);}
+  .tabbtn.active{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:var(--ink);
+    font-weight:600;
+  }
+  .tabbtn .tn{
+    width:18px;height:18px;
+    border-radius:50%;
+    border:1px solid currentColor;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;
+    flex-shrink:0;
+  }
+  .tabbtn.active .tn{border-color:var(--ink);}
+
+  .stage-note{
+    font-size:12px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace;
+    margin:-18px 0 22px;
+  }
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .section{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:24px 26px;
+    margin-bottom:18px;
+  }
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--gold);
+    border:1px solid var(--gold);
+    border-radius:50%;
+    width:24px;height:24px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .section-title{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:18px;
+    color:var(--paper);
+  }
+  .section-sub{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin:-8px 0 16px 36px;
+  }
+
+  label{
+    display:block;
+    font-size:12.5px;
+    font-weight:500;
+    color:var(--gold-soft);
+    margin-bottom:6px;
+    margin-top:16px;
+  }
+  label:first-of-type{margin-top:0;}
+  label .opt{
+    color:var(--text-dim);
+    font-weight:400;
+    font-style:italic;
+  }
+  textarea, input[type=text], select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    resize:vertical;
+    transition:border-color .15s ease;
+  }
+  textarea:focus, input:focus, select:focus{
+    outline:none;
+    border-color:var(--teal);
+  }
+  textarea{min-height:64px;}
+  select{
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23c9a04a'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;
+    background-position:right 14px center;
+    cursor:pointer;
+  }
+
+  .actions{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin:30px 0 10px;
+    flex-wrap:wrap;
+  }
+  button.builderbtn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:.03em;
+    border-radius:var(--radius);
+    padding:12px 22px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  button.builderbtn:active{transform:scale(.98);}
+  .btn-primary{
+    background:var(--gold);
+    color:var(--ink);
+    font-weight:600;
+    border:1px solid var(--gold);
+  }
+  .btn-primary:hover{background:var(--gold-soft);}
+  .btn-secondary{
+    background:transparent;
+    color:var(--teal);
+    border:1px solid var(--teal);
+  }
+  .btn-secondary:hover{background:rgba(92,154,144,.12);}
+
+  .required-note{
+    font-size:11.5px;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  .output-wrap{display:none;margin-top:8px;}
+  .output-wrap.show{display:block;}
+  .output-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--teal);
+    margin-bottom:8px;
+  }
+  .preview{
+    width:100%;
+    min-height:280px;
+    background:var(--panel-2);
+    border:1px solid var(--teal);
+    border-radius:var(--radius);
+    color:var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    line-height:1.6;
+    padding:16px;
+    white-space:pre-wrap;
+  }
+  .copied-flash{
+    color:var(--gold-soft);
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    margin-left:8px;
+    opacity:0;
+    transition:opacity .2s ease;
+  }
+  .copied-flash.show{opacity:1;}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="kicker">Bộ công cụ nội bộ · Vòng đời một bài báo khoa học</div>
+      <h1>Prompt Toolkit</h1>
+      <div class="subhead">8 prompt nối tiếp nhau, từ lúc chọn đề tài đến lúc gửi bản thảo đi tạp chí. Mỗi tab tạo ra một prompt hoàn chỉnh dựa trên thông tin thật của bạn.</div>
+    </div>
+    <div class="seal">BẢN<br>THẢO<br>v3</div>
+  </header>
+
+  <nav class="tabbar" id="tabbar"></nav>
+  <div class="stage-note" id="stageNote"></div>
+  <div id="panels"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   Helpers
+   ============================================================ */
+function val(values, id, fallback){
+  const v = (values[id] || "").trim();
+  return v.length ? v : (fallback !== undefined ? fallback : "(chưa cung cấp)");
+}
+
+const COMMON_INTEGRITY = `- Phản biện cao, không xu nịnh, chỉ rõ điểm yếu tiềm ẩn — kể cả trong chính giả định của tôi.
+- Nếu không chắc chắn về một sự kiện, một nghiên cứu đã tồn tại hay chưa, hoặc tình trạng hiện tại của một lĩnh vực, hãy nói rõ mức độ tin cậy thay vì suy đoán chắc nịch; phân biệt rõ "tôi biết chắc" và "tôi suy luận".
+- QUAN TRỌNG — về tài liệu tham khảo: nếu bạn có khả năng tìm kiếm web, hãy thực sự tìm kiếm trước khi liệt kê bất kỳ tài liệu nào, và chỉ trích dẫn nguồn bạn tìm thấy thật (kèm tên nguồn/link). Nếu không có khả năng search hoặc không tìm thấy đủ căn cứ, hãy nói rõ ràng là không thể xác nhận — tuyệt đối không bịa ra tên bài báo, tác giả, DOI, số liệu, hay trích dẫn.
+- Không tự ý làm mềm hoặc "reframe" các yêu cầu của tôi theo hướng dễ chịu hơn nếu điều đó làm mất tính chính xác.`;
+
+/* ============================================================
+   Tab definitions
+   ============================================================ */
+const TABS = [
+
+/* ---------- TAB 1 — CHIẾN LƯỢC & CẤU TRÚC (bản gốc) ---------- */
+{
+  shortLabel: "Chiến lược",
+  stage: "GIAI ĐOẠN 1 — TRƯỚC KHI VIẾT · Định hình đề tài, gap, và cấu trúc tổng thể của bài báo",
+  title: "Chiến lược & cấu trúc bài báo",
+  intro: "Dùng đầu tiên, một lần cho mỗi đề tài — trước khi bạn viết bất kỳ chữ nào của bản thảo.",
+  sections: [
+    { title: "Chủ đề & giai đoạn", fields: [
+      { id:"chude", type:"textarea", label:"Chủ đề / lĩnh vực nghiên cứu", required:true,
+        placeholder:"Ví dụ: Ứng dụng mô hình hóa/hóa trắc học để phân tích hệ vật liệu..." },
+      { id:"giaidoan", type:"select", label:"Giai đoạn hiện tại", options:[
+        "Mới có ý tưởng, chưa có dữ liệu",
+        "Đã có dữ liệu/kết quả sơ bộ, chưa hoàn chỉnh",
+        "Đã có kết quả tương đối đầy đủ, chuẩn bị viết bài",
+        "Đã có bản thảo, cần chiến lược trình bày lại"] }
+    ]},
+    { title: "Nguồn lực hiện có", sub:"Giúp AI đánh giá gap dựa trên năng lực thật, không phải chung chung", fields: [
+      { id:"dulieu", type:"textarea", label:"Dữ liệu / kết quả sơ bộ đã có", optional:true,
+        placeholder:"Ví dụ: đã chạy mô phỏng DFT cho 5 hệ vật liệu, kết quả sơ bộ cho thấy..." },
+      { id:"congcu", type:"textarea", label:"Công cụ, phương pháp, thiết bị hiện có",
+        placeholder:"Ví dụ: phần mềm VASP, cụm HPC 200 core, kính hiển vi SEM..." },
+      { id:"trinhdo", type:"textarea", label:"Trình độ / kinh nghiệm của nhóm nghiên cứu",
+        placeholder:"Ví dụ: nghiên cứu sinh năm 2, đã có 1 bài Q2, nhóm mạnh về thực nghiệm nhưng yếu mô phỏng..." }
+    ]},
+    { title: "Định hướng phương pháp & tạp chí", fields: [
+      { id:"phuongphap", type:"textarea", label:"Phương pháp / công cụ dự định sử dụng", optional:true,
+        placeholder:"Ví dụ: kết hợp DFT với machine learning để dự đoán..." },
+      { id:"tapchi", type:"select", label:"Định hướng tạp chí mong muốn", options:[
+        "chưa rõ, cần AI tư vấn","thiên về ứng dụng thực tiễn","phát triển phương pháp mới","chiều sâu lý thuyết/cơ chế"] }
+    ]},
+    { title: "Phản biện đối kháng", sub:"Không bắt buộc — nhưng giúp AI đóng vai Reviewer 2 sát hơn", fields: [
+      { id:"giathuyet", type:"textarea", label:"Giả thuyết cạnh tranh / cách giải thích khác mà bạn biết", optional:true,
+        placeholder:"Ví dụ: có nhóm khác cho rằng cơ chế X quan trọng hơn Y..." }
+    ]},
+    { title: "Phạm vi & những gì bạn đã biết", sub:"Giúp AI không lặp lại thứ bạn đã biết, và không bịa tài liệu tham khảo", fields: [
+      { id:"daboiet", type:"textarea", label:"Tài liệu / nghiên cứu bạn đã đọc qua", optional:true,
+        placeholder:"Ví dụ: đã đọc vài bài về Fe-CHA cho SCR, chưa đọc gì về B-CHA..." },
+      { id:"deadline", type:"text", label:"Mốc thời gian / deadline mong muốn", optional:true,
+        placeholder:"Ví dụ: cần có kết quả sơ bộ trong 6 tháng, hoặc chưa có deadline cụ thể" }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là một nhà khoa học đầu ngành, đồng thời là biên tập viên tạp chí quốc tế SCI/SCIE uy tín, có tư duy phản biện sắc sảo, logic, khách quan và không xu nịnh.
+
+Nhiệm vụ: Cùng tôi mổ xẻ, xây dựng chiến lược và cấu trúc cho một bài báo khoa học sắp tới, dựa trên bối cảnh thực tế của tôi bên dưới — không phải bối cảnh chung chung.
+
+BỐI CẢNH THỰC TẾ
+- Chủ đề / lĩnh vực nghiên cứu: ${val(values,"chude")}
+- Giai đoạn hiện tại: ${val(values,"giaidoan")}
+- Dữ liệu / kết quả sơ bộ đã có: ${val(values,"dulieu")}
+- Công cụ, phương pháp, thiết bị hiện có: ${val(values,"congcu")}
+- Trình độ / kinh nghiệm của nhóm nghiên cứu: ${val(values,"trinhdo")}
+- Phương pháp / công cụ dự định sử dụng: ${val(values,"phuongphap")}
+- Định hướng tạp chí mong muốn: ${val(values,"tapchi")}
+- Giả thuyết cạnh tranh / hướng tiếp cận khác mà tôi biết: ${val(values,"giathuyet")}
+- Tài liệu / nghiên cứu tôi đã đọc qua: ${val(values,"daboiet")}
+- Mốc thời gian / deadline mong muốn: ${val(values,"deadline")}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Đóng vai một "Reviewer 2" khó tính nhất có thể: chủ động tìm ít nhất một giả thuyết cạnh tranh hoặc lời giải thích thay thế mà nghiên cứu của tôi cần bác bỏ được, và chỉ ra điểm yếu lớn nhất trong logic đề xuất hiện tại.
+
+Hãy phân tích và trả lời lần lượt theo các nhóm câu hỏi sau, dựa trên bối cảnh thực tế ở trên (không phải chung chung):
+
+1. ĐÁNH GIÁ ĐỘ TRƯỞNG THÀNH & KHOẢNG TRỐNG
+- Lĩnh vực này hiện bão hòa hay đang là xu hướng? Giới hạn của các nghiên cứu trước là gì?
+- Với nguồn lực, dữ liệu và trình độ tôi đang có, đâu là khoảng trống nghiên cứu tôi thực sự khai thác được mà không trùng lặp?
+
+2. ĐÓNG GÓP CỐT LÕI & CÂU HỎI NGHIÊN CỨU
+- Đóng góp cốt lõi (novelty) khả thi nhất với nguồn lực hiện có là gì (phương pháp, cơ chế, vật liệu, hay mô hình)?
+- Hệ thống câu hỏi nghiên cứu cụ thể cần được trả lời trong bài báo là gì?
+- Mức độ tổng quát hóa (generalizability) của kết quả đến đâu, và giới hạn ở đâu?
+
+3. PHƯƠNG PHÁP, CƠ CHẾ & TÍNH KHẢ THI
+- Phương pháp, công cụ chuẩn mực nào phù hợp nhất với những gì tôi đã có? Cần benchmark/mô hình đối chứng nào?
+- Nghiên cứu này sẽ trả lời câu hỏi "Tại sao" (cơ chế vi mô/bản chất) thay vì chỉ dừng ở "Như thế nào"?
+- Với năng lực hiện tại của tôi, rủi ro lớn nhất về phương pháp hoặc dữ liệu là gì? Phương án phòng ngừa ra sao?
+
+4. ĐIỂM NHẤN & CHIẾN LƯỢC KỂ CHUYỆN
+- Đâu là các điểm nhấn (Highlights) đắt giá nhất cho mục "Highlights" của tạp chí?
+- Narrative của bài báo nên được dẫn dắt theo trình tự logic nào từ Introduction đến Conclusion?
+- Bài báo này phù hợp nhất với phân khúc tạp chí nào, đối chiếu với định hướng tôi đã nêu ở trên?
+
+5. PHẢN BIỆN ĐỐI KHÁNG (REVIEWER 2)
+- Giả thuyết hoặc cách giải thích cạnh tranh nào mạnh nhất mà tôi cần bác bỏ được?
+- Nếu bạn là reviewer khó tính nhất, bạn sẽ từ chối bài báo này vì (những) lý do gì?
+
+ĐẦU RA MONG MUỐN
+- Trình bày có hệ thống, mạch lạc, dùng đề mục rõ ràng, thẳng thắn chỉ ra những điểm tôi cần lưu ý trước khi triển khai chi tiết.
+- Kết thúc bằng: (a) một outline sơ bộ cho bài báo (Introduction → ... → Conclusion), (b) danh sách các quyết định (decision points) cụ thể tôi cần chốt trước khi bắt đầu viết chi tiết, và (c) nếu thấy phù hợp — 2-3 gợi ý working title, ghi rõ đây chỉ là gợi ý tạm thời, chưa chốt và có thể đổi sau khi có kết quả thật.`;
+  }
+},
+
+/* ---------- TAB 2 — MỔ XẺ 1 BÀI BÁO ---------- */
+{
+  shortLabel: "Mổ xẻ 1 bài",
+  stage: "GIAI ĐOẠN 2 — ĐỌC LITERATURE · Trích xuất có hệ thống từng bài báo, tránh đọc lướt bỏ sót gap",
+  title: "Mổ xẻ một bài báo (Paper Digestion)",
+  intro: "Dùng lặp lại cho từng bài báo bạn đọc trong quá trình review literature.",
+  sections: [
+    { title: "Bài báo cần mổ xẻ", fields: [
+      { id:"nguon", type:"text", label:"Tên bài báo / tác giả / link hoặc DOI", optional:true,
+        placeholder:"Ví dụ: PubMed 30035889, hoặc dán link" },
+      { id:"noidung", type:"textarea", label:"Dán abstract hoặc đoạn nội dung chính của bài báo", required:true,
+        placeholder:"Dán nguyên văn abstract, hoặc các đoạn Methods/Results quan trọng..." }
+    ]},
+    { title: "Đối chiếu với đề tài của tôi", sub:"Bỏ trống nếu chỉ muốn tóm tắt khách quan, không cần đối chiếu", fields: [
+      { id:"dete_hientai", type:"textarea", label:"Đề tài / hướng nghiên cứu hiện tại của tôi", optional:true,
+        placeholder:"Mô tả ngắn gọn đề tài bạn đang làm, để AI đánh giá mức độ trùng lặp/liên quan" }
+    ]},
+    { title: "Mức độ chi tiết", fields: [
+      { id:"mucdo", type:"select", label:"Mức độ chi tiết mong muốn", options:[
+        "Tóm tắt nhanh (5 dòng)",
+        "Phân tích đầy đủ (câu hỏi nghiên cứu, phương pháp, kết quả, giới hạn)",
+        "Chuyên sâu — đối chiếu chi tiết từng điểm với đề tài của tôi"] }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là một biên tập viên tạp chí SCI/SCIE, chuyên đọc và thẩm định nhanh literature cho các nhóm nghiên cứu. Tư duy khách quan, chính xác, không suy diễn quá đà.
+
+Nhiệm vụ: Mổ xẻ bài báo dưới đây theo cấu trúc cố định, chỉ dựa trên nội dung tôi cung cấp — không được bổ sung chi tiết không có trong văn bản.
+
+BÀI BÁO
+- Nguồn: ${val(values,"nguon")}
+- Nội dung: 
+"""
+${val(values,"noidung")}
+"""
+
+BỐI CẢNH ĐỐI CHIẾU (nếu có)
+- Đề tài hiện tại của tôi: ${val(values,"dete_hientai")}
+
+MỨC ĐỘ CHI TIẾT MONG MUỐN: ${val(values,"mucdo")}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Phân biệt rõ 3 loại thông tin trong câu trả lời: (i) "Nêu rõ trong văn bản" — trích dẫn/diễn giải sát nội dung được cung cấp; (ii) "Suy luận hợp lý" — điều bạn suy ra nhưng văn bản không nói thẳng; (iii) "Không đủ thông tin để xác định" — nếu văn bản không đề cập, đừng đoán, đừng lấp đầy bằng kiến thức nền chung chung.
+- Nếu bạn có khả năng search và nguồn/DOI được cung cấp, hãy thử xác minh bài báo có tồn tại thật và kiểm tra xem có phiên bản đầy đủ hơn (toàn văn) hay bài liên quan mới hơn không.
+
+Hãy trả lời theo cấu trúc:
+
+1. TÓM TẮT NHANH — 3-5 câu, chỉ những gì cốt lõi.
+
+2. CÂU HỎI NGHIÊN CỨU & PHƯƠNG PHÁP — bài này hỏi gì, dùng công cụ/phương pháp nào, với mức độ chi tiết kỹ thuật nào (cụ thể: phần mềm, mức lý thuyết, basis set, mẫu, cỡ mẫu... nếu văn bản có nêu).
+
+3. KẾT QUẢ CHÍNH — liệt kê phát hiện cốt lõi, tách bạch số liệu cụ thể (nếu có) khỏi diễn giải.
+
+4. GIỚI HẠN TÁC GIẢ TỰ THỪA NHẬN — nếu văn bản có đoạn tự nhận hạn chế, trích ra.
+
+5. GIỚI HẠN TÔI (VỚI VAI TRÒ REVIEWER) NHẬN THẤY NHƯNG TÁC GIẢ KHÔNG NÊU — chỉ nêu nếu có cơ sở rõ từ chính nội dung được cung cấp, không suy diễn xa.
+
+6. MỨC ĐỘ LIÊN QUAN / TRÙNG LẶP VỚI ĐỀ TÀI CỦA TÔI — chỉ làm mục này nếu tôi có cung cấp bối cảnh đối chiếu ở trên; nêu rõ trùng ở điểm nào, khác ở điểm nào, và mức độ đe dọa novelty của tôi (thấp/trung bình/cao) kèm lý do.`;
+  }
+},
+
+/* ---------- TAB 3 — TỔNG HỢP KHOẢNG TRỐNG ---------- */
+{
+  shortLabel: "Tổng hợp gap",
+  stage: "GIAI ĐOẠN 2 — ĐỌC LITERATURE · Ghép nhiều bài đã mổ xẻ thành một bức tranh gap tổng thể",
+  title: "Tổng hợp khoảng trống (Gap Synthesis)",
+  intro: "Dùng sau khi đã có vài bản tóm tắt/phân tích bài báo (ví dụ từ Tab 2), để tìm gap thật sự — gap chỉ hiện ra khi nhìn tổng thể nhiều bài, không phải từng bài riêng lẻ.",
+  sections: [
+    { title: "Các bài báo đã tổng hợp", fields: [
+      { id:"toanvan_tomtat", type:"textarea", label:"Dán các bản tóm tắt/phân tích bài báo đã có (từ Tab 2 hoặc nguồn khác)", required:true,
+        placeholder:"Dán nối tiếp nhiều bản tóm tắt, mỗi bài cách nhau rõ ràng (ví dụ đánh số Bài 1, Bài 2...)" }
+    ]},
+    { title: "Đề tài đang nhắm tới", fields: [
+      { id:"dete_muctieu", type:"textarea", label:"Đề tài / hướng nghiên cứu bạn đang nhắm tới", required:true,
+        placeholder:"Mô tả cụ thể điều bạn định làm, để đối chiếu với các bài đã đọc" }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là một biên tập viên/reviewer SCI/SCIE có khả năng tổng hợp literature ở tầm hệ thống, không chỉ đọc từng bài riêng lẻ.
+
+Nhiệm vụ: Từ các bản tóm tắt bài báo dưới đây, xác định chính xác khoảng trống nghiên cứu còn lại cho đề tài tôi đang nhắm tới.
+
+CÁC BÀI BÁO ĐÃ TỔNG HỢP
+"""
+${val(values,"toanvan_tomtat")}
+"""
+
+ĐỀ TÀI TÔI ĐANG NHẮM TỚI
+${val(values,"dete_muctieu")}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Gap chỉ được công nhận là "còn mở" nếu không có bài nào trong danh sách trên đã làm; nếu một khía cạnh chỉ được làm một phần, phải nói rõ "làm một phần, còn thiếu gì".
+- Nếu thông tin từ các bài tóm tắt không đủ để kết luận chắc chắn một gap còn mở, hãy nói rõ là cần tìm thêm/đọc thêm trước khi khẳng định, thay vì kết luận vội.
+
+Hãy trả lời theo cấu trúc:
+
+1. MA TRẬN BAO PHỦ — với mỗi khía cạnh quan trọng của đề tài tôi nhắm tới (liệt kê các khía cạnh), chỉ rõ bài nào trong danh sách đã làm khía cạnh đó, làm đầy đủ hay một phần, và bằng phương pháp gì.
+
+2. ĐIỂM MÂU THUẪN GIỮA CÁC BÀI — nếu có bài nào cho kết quả/kết luận trái ngược nhau, nêu rõ và đánh giá bài nào đáng tin hơn dựa trên phương pháp (không dựa trên tạp chí hay số lượng trích dẫn).
+
+3. GAP THỰC SỰ CÒN MỞ — liệt kê, xếp theo độ "sắc bén" (càng hẹp và càng ít bị tranh chấp thì càng an toàn để khai thác), kèm mức độ tin cậy của kết luận (cao/trung bình/thấp — cần đọc thêm).
+
+4. GAP TRÔNG CÓ VẺ MỞ NHƯNG THỰC RA ĐÃ CÓ NGƯỜI LÀM MỘT PHẦN — cảnh báo riêng, vì đây là bẫy phổ biến nhất khi viết Introduction.
+
+5. KHUYẾN NGHỊ — nếu bằng chứng hiện có chưa đủ để chốt gap, chỉ rõ cần tìm thêm loại tài liệu nào (từ khóa gợi ý) trước khi tôi chốt hướng đi.`;
+  }
+},
+
+/* ---------- TAB 4 — VIẾT TỪNG PHẦN BẢN THẢO ---------- */
+{
+  shortLabel: "Viết bản thảo",
+  stage: "GIAI ĐOẠN 3 — VIẾT · Soạn từng phần bản thảo dựa trên outline và dữ liệu đã chốt",
+  title: "Viết từng phần bản thảo (Section Drafting)",
+  intro: "Dùng lặp lại cho từng phần: Introduction, Methods, Results, Discussion, Conclusion, Abstract.",
+  sections: [
+    { title: "Phần cần viết", fields: [
+      { id:"phan", type:"select", label:"Phần cần viết", options:[
+        "Introduction","Methods","Results","Discussion","Conclusion","Abstract"] }
+    ]},
+    { title: "Nội dung thật", sub:"Đây là phần quan trọng nhất — AI chỉ được viết dựa trên những gì bạn đưa vào đây", fields: [
+      { id:"outline", type:"textarea", label:"Outline / các ý chính đã chốt cho phần này", required:true,
+        placeholder:"Liệt kê các ý, theo đúng trình tự bạn muốn xuất hiện trong đoạn văn" },
+      { id:"dulieu_that", type:"textarea", label:"Dữ liệu/kết quả/số liệu thật cần đưa vào (nếu có)", optional:true,
+        placeholder:"Dán số liệu, bảng, hoặc mô tả kết quả cụ thể — để AI không phải bịa số" }
+    ]},
+    { title: "Văn phong & độ dài", fields: [
+      { id:"vanphong", type:"text", label:"Văn phong tham chiếu / tạp chí mục tiêu", optional:true,
+        placeholder:"Ví dụ: theo phong cách Journal of Molecular Structure" },
+      { id:"dodai", type:"text", label:"Độ dài mong muốn", optional:true, placeholder:"Ví dụ: khoảng 400 từ" }
+    ]}
+  ],
+  build(values){
+    const phan = val(values,"phan","Introduction");
+    const logicMap = {
+      "Introduction":"Đi theo mạch: bối cảnh chung → thu hẹp dần → khoảng trống cụ thể → câu hỏi/mục tiêu nghiên cứu của bài này. Không được nêu kết quả trước khi Introduction kết thúc.",
+      "Methods":"Ưu tiên tuyệt đối là khả năng tái lập (reproducibility): đủ chi tiết để người khác làm lại được. Không diễn giải kết quả, không đánh giá — chỉ mô tả đã làm gì, như thế nào.",
+      "Results":"Chỉ báo cáo khách quan những gì quan sát/tính toán được, theo đúng số liệu tôi cung cấp. Không suy diễn nguyên nhân, không so sánh với literature ở đây — việc đó thuộc về Discussion.",
+      "Discussion":"Diễn giải kết quả, liên hệ ngược lại với khoảng trống đã nêu ở Introduction, so sánh với các nghiên cứu khác (chỉ nếu tôi cung cấp), và nêu giới hạn thật của nghiên cứu.",
+      "Conclusion":"Không đưa thông tin/số liệu mới chưa xuất hiện ở Results hay Discussion. Tóm gọn đóng góp cốt lõi và một hướng đi tiếp theo hợp lý.",
+      "Abstract":"Nén toàn bộ bài báo theo cấu trúc: bối cảnh ngắn → mục tiêu → phương pháp tóm tắt → kết quả chính (có số liệu nếu có) → kết luận/ý nghĩa. Không dùng thuật ngữ chưa giải thích."
+    };
+    return `Role: Bạn là một scientific writer/biên tập viên SCI/SCIE, viết chính xác, súc tích, không hoa mỹ thừa, không overclaim.
+
+Nhiệm vụ: Viết phần "${phan}" của bản thảo, CHỈ dựa trên outline và dữ liệu tôi cung cấp bên dưới.
+
+OUTLINE ĐÃ CHỐT
+"""
+${val(values,"outline")}
+"""
+
+DỮ LIỆU/KẾT QUẢ THẬT CẦN ĐƯA VÀO
+"""
+${val(values,"dulieu_that")}
+"""
+
+VĂN PHONG / TẠP CHÍ MỤC TIÊU: ${val(values,"vanphong")}
+ĐỘ DÀI MONG MUỐN: ${val(values,"dodai","không giới hạn cụ thể, ưu tiên súc tích")}
+
+YÊU CẦU LOGIC RIÊNG CHO PHẦN "${phan}"
+${logicMap[phan]}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- TUYỆT ĐỐI không bịa số liệu, tên phương pháp, tài liệu tham khảo, hay kết quả không có trong outline/dữ liệu tôi cung cấp.
+- Nếu outline có chỗ thiếu thông tin để viết trọn câu, hãy để một chỗ trống rõ ràng dạng [CẦN BỔ SUNG: mô tả cụ thể cần gì] thay vì tự bịa ra cho trơn tru.
+- Sau khi viết xong đoạn văn, thêm một mục riêng "GHI CHÚ CHO TÁC GIẢ" liệt kê: (a) những chỗ bạn phải để trống vì thiếu dữ liệu, (b) những giả định bạn buộc phải đưa ra để đoạn văn mạch lạc — để tôi xác nhận lại.`;
+  }
+},
+
+/* ---------- TAB 5 — PHẢN BIỆN ĐỐI KHÁNG TOÀN BẢN THẢO ---------- */
+{
+  shortLabel: "Phản biện",
+  stage: "GIAI ĐOẠN 4 — TỰ KIỂM · Stress-test bản thảo hoàn chỉnh trước khi nộp",
+  title: "Phản biện đối kháng toàn bản thảo (Adversarial Review)",
+  intro: "Dùng khi đã có một bản thảo (một phần hoặc toàn bộ) thành văn, cần một reviewer khó tính đọc trước khi nộp thật.",
+  sections: [
+    { title: "Bản thảo", fields: [
+      { id:"banthaonoidung", type:"textarea", label:"Dán toàn bộ hoặc từng phần bản thảo cần phản biện", required:true,
+        placeholder:"Dán nguyên văn đoạn/bài cần phản biện" }
+    ]},
+    { title: "Trọng tâm & độ khắt khe", fields: [
+      { id:"trongtam", type:"select", label:"Trọng tâm phản biện", options:[
+        "Toàn diện (logic, novelty, phương pháp, văn phong)",
+        "Chỉ logic & mạch lập luận",
+        "Chỉ tính mới & so với literature",
+        "Chỉ phương pháp luận"] },
+      { id:"khacnghiet", type:"select", label:"Mức độ khắt khe", options:[
+        "Reviewer khó tính kinh điển (Reviewer 2)",
+        "Reviewer thân thiện, hướng tới major/minor revision",
+        "Editor quyết định accept/reject ngay từ vòng đầu"] }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là reviewer/biên tập viên khó tính nhất của một tạp chí SCI/SCIE — nhiệm vụ của bạn là tìm ra mọi lỗ hổng trước khi tác giả bị chính reviewer thật bắt lỗi.
+
+Nhiệm vụ: Phản biện bản thảo dưới đây với trọng tâm và mức độ khắt khe tôi chọn.
+
+TRỌNG TÂM PHẢN BIỆN: ${val(values,"trongtam")}
+MỨC ĐỘ KHẮT KHE: ${val(values,"khacnghiet")}
+
+BẢN THẢO
+"""
+${val(values,"banthaonoidung")}
+"""
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Với mỗi lỗi/vấn đề nêu ra, phải trích dẫn cụ thể câu/đoạn gây ra vấn đề (paraphrase ngắn gọn nếu câu quá dài), không phê bình chung chung kiểu "logic chưa chặt".
+- Phân loại rõ mức độ nghiêm trọng của từng vấn đề: Chí mạng (đe dọa bị reject) / Trung bình (major revision) / Nhỏ (minor revision, văn phong).
+- Với mỗi vấn đề, đề xuất một hướng sửa cụ thể — không chỉ nêu vấn đề rồi bỏ đó.
+
+Hãy trả lời theo cấu trúc:
+
+1. RÀ SOÁT THEO ĐOẠN — đi qua bản thảo, với mỗi vấn đề: [Vị trí] → [Vấn đề] → [Mức độ nghiêm trọng] → [Hướng sửa đề xuất].
+
+2. OVERCLAIM & CÂU CHỮ QUÁ TAY — liệt kê riêng các câu dùng từ ngữ mạnh hơn mức bằng chứng cho phép (ví dụ "chứng minh" khi chỉ có "cho thấy", "đầu tiên" khi chưa chắc chắn).
+
+3. LỖ HỔNG SO VỚI LITERATURE — chỗ nào thiếu trích dẫn cần thiết, chỗ nào so sánh với literature chưa công bằng/chưa đủ.
+
+4. ĐÁNH GIÁ TỔNG THỂ — kết luận cuối: Accept / Minor revision / Major revision / Reject, kèm 2-3 lý do cốt lõi nhất quyết định kết luận này.`;
+  }
+},
+
+/* ---------- TAB 6 — KIỂM TRA TRÍCH DẪN ---------- */
+{
+  shortLabel: "Kiểm tra trích dẫn",
+  stage: "GIAI ĐOẠN 4 — TỰ KIỂM · Xác minh từng claim có trích dẫn trước khi nộp, tránh bị buộc tội bịa tài liệu",
+  title: "Kiểm tra trích dẫn (Citation Audit)",
+  intro: "Dùng cho phần Reference/các câu có trích dẫn trong bản thảo — đặc biệt quan trọng nếu bất kỳ phần nào của bản thảo có sự hỗ trợ từ AI.",
+  sections: [
+    { title: "Danh sách claim cần kiểm tra", fields: [
+      { id:"claims", type:"textarea", label:"Dán các câu có trích dẫn (claim + citation) cần kiểm tra", required:true,
+        placeholder:"Ví dụ: \"DFT B3LYP/6-311G(d,p) cho sai số dưới 20 cm-1 so với thực nghiệm [Nguyen et al., 2020].\"\n(Liệt kê từng claim một, mỗi claim một dòng hoặc đoạn riêng)" }
+    ]},
+    { title: "Mức độ xác minh", fields: [
+      { id:"cosearch", type:"select", label:"Bạn có muốn AI tìm kiếm thực tế để xác minh không?", options:[
+        "Có — tìm kiếm thực tế trước khi kết luận bất kỳ claim nào",
+        "Không — chỉ đánh giá tính hợp lý nội tại, không search"] }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là một fact-checker/biên tập viên chuyên trách kiểm tra trích dẫn cho tạp chí SCI/SCIE. Nhiệm vụ của bạn không phải là viết hay, mà là chính xác và trung thực về mức độ chắc chắn.
+
+Nhiệm vụ: Với mỗi claim có trích dẫn dưới đây, xác định claim đó có thực sự được nguồn trích dẫn hậu thuẫn hay không.
+
+CHẾ ĐỘ XÁC MINH: ${val(values,"cosearch")}
+
+DANH SÁCH CLAIM CẦN KIỂM TRA
+"""
+${val(values,"claims")}
+"""
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Với mỗi claim, phân loại vào đúng MỘT trong bốn nhãn sau, không được để mơ hồ:
+  (A) ĐÃ XÁC MINH KHỚP NGUỒN — tìm thấy nguồn, nội dung khớp với claim.
+  (B) NGUỒN TỒN TẠI NHƯNG NỘI DUNG KHÔNG KHỚP HOÀN TOÀN — nêu rõ khớp phần nào, sai lệch phần nào.
+  (C) KHÔNG TÌM THẤY NGUỒN — nghi ngờ trích dẫn không có thật hoặc thông tin nguồn (tên, năm, tạp chí) sai.
+  (D) KHÔNG THỂ XÁC MINH — do giới hạn truy cập (bài trả phí, không có sẵn toàn văn...), không phải do nguồn sai.
+- TUYỆT ĐỐI không tự bịa ra một nguồn "có vẻ hợp lý" để lấp chỗ trống cho một claim thuộc nhóm (C).
+- Nếu chế độ xác minh là "Không search", chỉ đánh giá được tính hợp lý nội tại (claim có tự mâu thuẫn không, cách trích dẫn có đúng chuẩn không) — phải nói rõ giới hạn này ngay đầu câu trả lời, không được ngầm hiểu là đã xác minh thật.
+
+Hãy trả lời theo bảng: [Claim] → [Nhãn phân loại A/B/C/D] → [Giải thích ngắn] → [Hành động đề xuất cho tác giả].
+
+Kết thúc bằng danh sách riêng: những claim thuộc nhóm (C) hoặc (D) — đây là những claim tôi PHẢI xử lý (sửa, xóa, hoặc tự tay tìm nguồn thay thế) trước khi nộp bài.`;
+  }
+},
+
+/* ---------- TAB 7 — HIGHLIGHTS & TÓM TẮT ĐỒ HỌA ---------- */
+{
+  shortLabel: "Highlights",
+  stage: "GIAI ĐOẠN 5 — HOÀN THIỆN · Soạn các thành phần phụ trợ theo đúng khuôn khổ tạp chí",
+  title: "Highlights & tóm tắt đồ họa",
+  intro: "Dùng khi bản thảo đã gần hoàn chỉnh, cần soạn Highlights và caption cho Graphical Abstract.",
+  sections: [
+    { title: "Kết quả chính", fields: [
+      { id:"ketquachinh", type:"textarea", label:"Các kết quả/phát hiện chính của nghiên cứu", required:true,
+        placeholder:"Liệt kê các phát hiện cốt lõi, kèm số liệu cụ thể nếu có" }
+    ]},
+    { title: "Khuôn khổ tạp chí", fields: [
+      { id:"khuonkho", type:"text", label:"Tạp chí mục tiêu / yêu cầu định dạng (nếu biết)", optional:true,
+        placeholder:"Ví dụ: Elsevier — tối đa 85 ký tự/dòng, 3-5 highlights" },
+      { id:"soluong", type:"text", label:"Số lượng highlights mong muốn", optional:true, placeholder:"Ví dụ: 3-5" }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là biên tập viên SCI/SCIE chuyên soạn phần Highlights và Graphical Abstract — phần bị đọc nhiều nhất nhưng dễ bị viết chung chung nhất.
+
+Nhiệm vụ: Soạn Highlights và một đoạn caption/tóm tắt cho Graphical Abstract, CHỈ dựa trên kết quả thật tôi cung cấp.
+
+KẾT QUẢ CHÍNH CỦA NGHIÊN CỨU
+"""
+${val(values,"ketquachinh")}
+"""
+
+KHUÔN KHỔ TẠP CHÍ: ${val(values,"khuonkho","chưa rõ, hãy dùng chuẩn phổ biến (Elsevier: tối đa 85 ký tự/dòng, 3-5 gạch đầu dòng)")}
+SỐ LƯỢNG HIGHLIGHTS MONG MUỐN: ${val(values,"soluong","3-5")}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Mỗi highlight phải là MỘT phát hiện cụ thể (có thể kèm số liệu), không phải một câu mô tả chung chung kiểu "nghiên cứu này rất quan trọng".
+- Không dùng các từ phóng đại không có căn cứ ("đầu tiên", "cách mạng", "đột phá") trừ khi điều đó thực sự được nêu rõ và có cơ sở trong phần kết quả tôi cung cấp — nếu dùng, phải kèm ghi chú [CẦN TÁC GIẢ XÁC NHẬN CƠ SỞ].
+- Nếu tôi không cung cấp đủ khuôn khổ tạp chí, hãy dùng chuẩn phổ biến nhất và nói rõ đây là chuẩn tạm, cần đối chiếu lại với guideline thật của tạp chí đích trước khi nộp.
+
+Hãy đưa ra:
+
+1. HIGHLIGHTS — đúng số lượng yêu cầu, mỗi dòng độc lập, đúng giới hạn ký tự nếu có nêu.
+
+2. GRAPHICAL ABSTRACT CAPTION — 2-4 câu, ngôn ngữ đơn giản, mô tả được nội dung hình minh họa nên thể hiện gì (không cần vẽ hình, chỉ mô tả bằng lời các yếu tố chính nên xuất hiện).
+
+3. TEXTUAL/SOCIAL SUMMARY — 1 đoạn ngắn (~2-3 câu) dùng được cho phần tóm tắt phi kỹ thuật, nếu tạp chí yêu cầu (ví dụ "Plain language summary").`;
+  }
+},
+
+/* ---------- TAB 8 — CHỌN TẠP CHÍ & COVER LETTER ---------- */
+{
+  shortLabel: "Tạp chí & thư gửi",
+  stage: "GIAI ĐOẠN 5 — HOÀN THIỆN · Chọn tạp chí phù hợp và soạn cover letter",
+  title: "Chọn tạp chí & Cover letter",
+  intro: "Dùng ở bước cuối, khi bản thảo gần hoàn chỉnh và bạn cần quyết định nộp đi đâu.",
+  sections: [
+    { title: "Đóng góp cốt lõi", fields: [
+      { id:"dongopcotloi", type:"textarea", label:"Tóm tắt đóng góp cốt lõi & novelty đã chốt", required:true,
+        placeholder:"Câu novelty cuối cùng của bài báo, càng cụ thể càng tốt" },
+      { id:"tukhoa", type:"text", label:"Lĩnh vực / từ khóa chính", required:true,
+        placeholder:"Ví dụ: DFT, vibrational spectroscopy, natural alkaloids" }
+    ]},
+    { title: "Ưu tiên khi chọn tạp chí", fields: [
+      { id:"uutien", type:"select", label:"Ưu tiên hàng đầu", options:[
+        "Impact factor cao nhất có thể",
+        "Thời gian review nhanh",
+        "Đúng scope hẹp nhất với bài báo",
+        "Chi phí APC thấp / không bắt buộc open access"] },
+      { id:"ungvien", type:"textarea", label:"Các tạp chí bạn đang cân nhắc (nếu có)", optional:true,
+        placeholder:"Liệt kê tên tạp chí bạn đang phân vân, nếu đã có sẵn danh sách" }
+    ]}
+  ],
+  build(values){
+    return `Role: Bạn là biên tập viên SCI/SCIE có kinh nghiệm định vị bài báo vào đúng tạp chí, đồng thời là người soạn cover letter chuyên nghiệp.
+
+Nhiệm vụ: (1) Đề xuất và xếp hạng các tạp chí phù hợp, (2) soạn một cover letter mẫu.
+
+ĐÓNG GÓP CỐT LÕI & NOVELTY ĐÃ CHỐT
+"""
+${val(values,"dongopcotloi")}
+"""
+
+LĨNH VỰC / TỪ KHÓA CHÍNH: ${val(values,"tukhoa")}
+ƯU TIÊN HÀNG ĐẦU KHI CHỌN TẠP CHÍ: ${val(values,"uutien")}
+CÁC TẠP CHÍ ĐANG CÂN NHẮC: ${val(values,"ungvien")}
+
+NGUYÊN TẮC TRẢ LỜI
+${COMMON_INTEGRITY}
+- Thông tin về scope, impact factor, và thời gian review của tạp chí thay đổi theo thời gian — nếu bạn có khả năng search, hãy tra cứu thông tin hiện tại thay vì dùng trí nhớ cũ; nếu không, hãy nói rõ thông tin bạn đưa ra có thể đã lỗi thời và tôi cần tự kiểm tra lại trên trang tạp chí trước khi nộp.
+- Không tự nhận thay tôi bất kỳ điều gì cần xác nhận thủ công (ví dụ: bài chưa từng nộp nơi khác, không xung đột lợi ích) — chỉ để chỗ trống cho tôi tự điền.
+
+Hãy đưa ra:
+
+1. DANH SÁCH TẠP CHÍ ĐỀ XUẤT — xếp hạng theo đúng ưu tiên tôi chọn, mỗi tạp chí kèm: lý do phù hợp scope, ước tính vị trí impact factor/thời gian review (ghi rõ nếu không xác minh được), và một rủi ro/lưu ý khi nộp vào đó.
+
+2. COVER LETTER MẪU — theo cấu trúc chuẩn: (a) mở đầu nêu tên bài báo và lý do phù hợp với scope tạp chí, (b) 1-2 câu nêu đúng novelty đã chốt ở trên — không phóng đại thêm so với những gì tôi cung cấp, (c) một câu xác nhận tính nguyên bản (để trống dạng [XÁC NHẬN: bài chưa từng nộp nơi khác] để tôi tự điền), (d) lời cảm ơn ngắn gọn kết thúc.`;
+  }
+}
+
+];
+
+/* ============================================================
+   Render engine
+   ============================================================ */
+const tabbar = document.getElementById('tabbar');
+const panelsRoot = document.getElementById('panels');
+const stageNote = document.getElementById('stageNote');
+
+function fieldHTML(tIdx, f){
+  const fid = `f-${tIdx}-${f.id}`;
+  const optTag = f.optional ? ` <span class="opt">(không bắt buộc)</span>` : '';
+  let control = '';
+  if(f.type === 'textarea'){
+    control = `<textarea id="${fid}" placeholder="${f.placeholder ? f.placeholder.replace(/"/g,'&quot;') : ''}" ${f.required?'required':''}></textarea>`;
+  } else if(f.type === 'text'){
+    control = `<input type="text" id="${fid}" placeholder="${f.placeholder ? f.placeholder.replace(/"/g,'&quot;') : ''}" ${f.required?'required':''}>`;
+  } else if(f.type === 'select'){
+    const opts = f.options.map(o => `<option value="${o.replace(/"/g,'&quot;')}">${o}</option>`).join('');
+    control = `<select id="${fid}">${opts}</select>`;
+  }
+  return `<label for="${fid}">${f.label}${optTag}</label>${control}`;
+}
+
+function panelHTML(tab, tIdx){
+  const sectionsHTML = tab.sections.map((s, sIdx) => `
+    <div class="section">
+      <div class="section-head"><span class="num">${sIdx+1}</span><span class="section-title">${s.title}</span></div>
+      ${s.sub ? `<div class="section-sub">${s.sub}</div>` : ''}
+      ${s.fields.map(f => fieldHTML(tIdx, f)).join('')}
+    </div>`).join('');
+
+  return `
+    <p style="font-size:13px;color:var(--text-dim);margin:-4px 0 22px;">${tab.intro}</p>
+    <form id="form-${tIdx}">
+      ${sectionsHTML}
+      <div class="actions">
+        <button type="submit" class="builderbtn btn-primary">Tạo prompt</button>
+        <span class="required-note">* Chỉ mục có đánh dấu là bắt buộc</span>
+      </div>
+    </form>
+    <div class="output-wrap" id="output-${tIdx}">
+      <div class="output-label">Prompt hoàn chỉnh — sao chép hoặc tải về</div>
+      <textarea class="preview" id="preview-${tIdx}" readonly></textarea>
+      <div class="actions">
+        <button type="button" class="builderbtn btn-secondary" id="copyBtn-${tIdx}">Sao chép</button>
+        <button type="button" class="builderbtn btn-secondary" id="downloadBtn-${tIdx}">Tải file .txt</button>
+        <span class="copied-flash" id="flash-${tIdx}">Đã sao chép ✓</span>
+      </div>
+    </div>`;
+}
+
+TABS.forEach((tab, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'tabbtn' + (i===0 ? ' active' : '');
+  btn.dataset.tab = i;
+  btn.innerHTML = `<span class="tn">${i+1}</span><span>${tab.shortLabel}</span>`;
+  btn.addEventListener('click', () => switchTab(i));
+  tabbar.appendChild(btn);
+
+  const panel = document.createElement('div');
+  panel.className = 'panel' + (i===0 ? ' active' : '');
+  panel.id = `panel-${i}`;
+  panel.innerHTML = `<h2 style="font-family:'Fraunces',serif;font-weight:600;font-size:20px;margin:0 0 6px;">${tab.title}</h2>` + panelHTML(tab, i);
+  panelsRoot.appendChild(panel);
+
+  const form = panel.querySelector(`#form-${i}`);
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    const values = {};
+    let firstInvalid = null;
+    tab.sections.forEach(s => s.fields.forEach(f => {
+      const el = document.getElementById(`f-${i}-${f.id}`);
+      values[f.id] = el.value;
+      if(f.required && !el.value.trim() && !firstInvalid) firstInvalid = el;
+    }));
+    if(firstInvalid){ firstInvalid.focus(); return; }
+
+    const prompt = tab.build(values);
+    document.getElementById(`preview-${i}`).value = prompt;
+    const ow = document.getElementById(`output-${i}`);
+    ow.classList.add('show');
+    ow.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  panel.querySelector(`#copyBtn-${i}`).addEventListener('click', async function(){
+    const text = document.getElementById(`preview-${i}`).value;
+    try{ await navigator.clipboard.writeText(text); }
+    catch(err){
+      const ta = document.getElementById(`preview-${i}`);
+      ta.select();
+      document.execCommand('copy');
+    }
+    const flash = document.getElementById(`flash-${i}`);
+    flash.classList.add('show');
+    setTimeout(()=>flash.classList.remove('show'), 1600);
+  });
+
+  panel.querySelector(`#downloadBtn-${i}`).addEventListener('click', function(){
+    const text = document.getElementById(`preview-${i}`).value;
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `prompt_${i+1}_${tab.shortLabel.toLowerCase().replace(/\s+/g,'_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+});
+
+function switchTab(idx){
+  document.querySelectorAll('.tabbtn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  stageNote.textContent = TABS[idx].stage;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+stageNote.textContent = TABS[0].stage;
+</script>
+</body>
+</html>
